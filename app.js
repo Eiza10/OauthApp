@@ -4,6 +4,8 @@ const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const GitHubStrategy = require('passport-github2').Strategy;
+const LocalStrategy = require('passport-local').Strategy;
+const bcrypt = require('bcryptjs');
 const dotenv = require('dotenv');
 const path = require('path');
 const port = process.env.PORT || 3005;
@@ -13,6 +15,11 @@ dotenv.config();
 
 const app = express();
 const PORT = 3000;
+
+// Simulamos una base de datos de usuarios en memoria
+const users = [
+  { id: 1, username: 'usuario1', passwordHash: '$2a$10$KIXe9Qqf1F/6Fmvs6u5ycuOdCkHbs7df5q3owNT5q0J5pOp09Up3C' } // password: "123456"
+];
 
 // Configurar la sesión
 app.use(session({
@@ -47,12 +54,30 @@ passport.use(new GitHubStrategy({
   return done(null, { profile, provider: 'github' });
 }));
 
+// Configuración de Passport para la estrategia local
+passport.use(new LocalStrategy((username, password, done) => {
+  const user = users.find(u => u.username === username);
+  if (!user) {
+    return done(null, false, { message: 'Usuario no encontrado' });
+  }
+
+  bcrypt.compare(password, user.passwordHash, (err, isMatch) => {
+    if (err) return done(err);
+    if (isMatch) {
+      return done(null, user);
+    } else {
+      return done(null, false, { message: 'Contraseña incorrecta' });
+    }
+  });
+}));
+
 // Serializar y deserializar el usuario
 passport.serializeUser((user, done) => {
-  done(null, user);
+  done(null, user.id);
 });
 
-passport.deserializeUser((user, done) => {
+passport.deserializeUser((id, done) => {
+  const user = users.find(u => u.id === id);
   done(null, user);
 });
 
@@ -71,14 +96,8 @@ app.get('/', (req, res) => {
 
 // Ruta protegida después del inicio de sesión
 app.get('/user', isAuthenticated, (req, res) => {
-  const { displayName, emails } = req.user.profile;
-  const provider = req.user.provider;
-
-  res.render('user', {
-    name: displayName,
-    email: emails ? emails[0].value : 'No disponible',
-    provider,
-  });
+  const { username } = req.user;
+  res.render('user', { username });
 });
 
 // Ruta para el inicio de sesión con Google
@@ -101,6 +120,13 @@ app.get('/auth/github/callback', passport.authenticate('github', {
   res.redirect('/user');
 });
 
+// Procesar el formulario de inicio de sesión
+app.post('/', passport.authenticate('local', {
+  successRedirect: '/user',
+  failureRedirect: '/login',
+  failureFlash: true,
+}));
+
 // Ruta para cerrar sesión
 app.get('/logout', (req, res) => {
   req.logout(() => {
@@ -109,6 +135,6 @@ app.get('/logout', (req, res) => {
 });
 
 // Iniciar el servidor
-app.listen(port, () => {
+app.listen(PORT, () => {
   console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
 });
