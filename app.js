@@ -150,3 +150,5 @@ app.get('/logout', (req, res) => {
 app.listen(port, () => {
   console.log(`Server working on port: ${port}`);
 });
+
+module.exports = app;
