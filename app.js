@@ -6,6 +6,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const GitHubStrategy = require('passport-github2').Strategy;
 const dotenv = require('dotenv');
 const path = require('path');
+const port = process.env.PORT || 3005;
 
 // Configurar variables de entorno
 dotenv.config();
@@ -32,7 +33,7 @@ app.use(passport.session());
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: '/auth/google/callback',
+  callbackURL: 'https://oauth.haritzeizagirre.eus/auth/google/callback',
 }, (accessToken, refreshToken, profile, done) => {
   return done(null, { profile, provider: 'google' });
 }));
@@ -41,7 +42,7 @@ passport.use(new GoogleStrategy({
 passport.use(new GitHubStrategy({
   clientID: process.env.GITHUB_CLIENT_ID,
   clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  callbackURL: '/auth/github/callback',
+  callbackURL: 'https://oauth.haritzeizagirre.eus/auth/github/callback',
 }, (accessToken, refreshToken, profile, done) => {
   return done(null, { profile, provider: 'github' });
 }));
@@ -108,6 +109,6 @@ app.get('/logout', (req, res) => {
 });
 
 // Iniciar el servidor
-app.listen(PORT, () => {
+app.listen(port, () => {
   console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
 });
