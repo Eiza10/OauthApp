@@ -14,7 +14,7 @@ const port = process.env.PORT || 3005;
 dotenv.config();
 
 const app = express();
-
+app.use(express.static(path.join(__dirname, 'public')));
 // Simulamos una base de datos de usuarios en memoria
 const users = [
   { id: 1, username: 'usuario1', passwordHash: '$2a$10$KIXe9Qqf1F/6Fmvs6u5ycuOdCkHbs7df5q3owNT5q0J5pOp09Up3C' } // password: "123456"
