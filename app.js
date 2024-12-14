@@ -21,16 +21,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(flash());
-
-// Middleware para pasar mensajes flash a las vistas
-app.use((req, res, next) => {
-  res.locals.success_msg = req.flash('success_msg');
-  res.locals.error_msg = req.flash('error_msg');
-  res.locals.error = req.flash('error'); // Usado por Passport
-  next();
-});
-
 // Simulamos una base de datos de usuarios en memoria
 const users = [
   { id: 1, username: 'usuario1', passwordHash: '$2a$10$KIXe9Qqf1F/6Fmvs6u5ycuOdCkHbs7df5q3owNT5q0J5pOp09Up3C' } // password: "123456"
@@ -50,6 +40,16 @@ app.set('views', path.join(__dirname, 'views'));
 // Inicializar Passport
 app.use(passport.initialize());
 app.use(passport.session());
+
+app.use(flash());
+
+// Middleware para pasar mensajes flash a las vistas
+app.use((req, res, next) => {
+  res.locals.success_msg = req.flash('success_msg');
+  res.locals.error_msg = req.flash('error_msg');
+  res.locals.error = req.flash('error'); // Usado por Passport
+  next();
+});
 
 // Configuración de Passport para Google
 passport.use(new GoogleStrategy({
