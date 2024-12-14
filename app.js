@@ -31,6 +31,7 @@ app.use(session({
   secret: 'my_secret_key',
   resave: false,
   saveUninitialized: true,
+  cookie: { secure: true }
 }));
 
 // Configurar motor de vistas EJS
