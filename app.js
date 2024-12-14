@@ -14,7 +14,6 @@ const port = process.env.PORT || 3005;
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
 
 // Simulamos una base de datos de usuarios en memoria
 const users = [
@@ -148,6 +147,6 @@ app.get('/logout', (req, res) => {
 });
 
 // Iniciar el servidor
-app.listen(PORT, () => {
-  console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
+app.listen(port, () => {
+  console.log(`Server working on port: ${port}`);
 });
