@@ -8,7 +8,9 @@ const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcryptjs');
 const dotenv = require('dotenv');
 const path = require('path');
+const flash = require('connect-flash');
 const port = process.env.PORT || 3005;
+
 
 // Configurar variables de entorno
 dotenv.config();
@@ -18,6 +20,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(flash());
+
+// Middleware para pasar mensajes flash a las vistas
+app.use((req, res, next) => {
+  res.locals.success_msg = req.flash('success_msg');
+  res.locals.error_msg = req.flash('error_msg');
+  res.locals.error = req.flash('error'); // Usado por Passport
+  next();
+});
 
 // Simulamos una base de datos de usuarios en memoria
 const users = [
@@ -121,6 +133,7 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 // Callback de Google
 app.get('/auth/google/callback', passport.authenticate('google', {
   failureRedirect: '/',
+  failureFlash: true,
 }), (req, res) => {
   res.redirect('/user');
 });
@@ -131,6 +144,7 @@ app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] 
 // Callback de GitHub
 app.get('/auth/github/callback', passport.authenticate('github', {
   failureRedirect: '/',
+  failureFlash: true,
 }), (req, res) => {
   res.redirect('/user');
 });
