@@ -15,6 +15,10 @@ dotenv.config();
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // Simulamos una base de datos de usuarios en memoria
 const users = [
   { id: 1, username: 'usuario1', passwordHash: '$2a$10$KIXe9Qqf1F/6Fmvs6u5ycuOdCkHbs7df5q3owNT5q0J5pOp09Up3C' } // password: "123456"
@@ -95,8 +99,7 @@ app.get('/', (req, res) => {
 
 // Ruta protegida después del inicio de sesión
 app.get('/user', isAuthenticated, (req, res) => {
-  const { username } = req.user;
-  res.render('user', { username });
+  res.render('user', { username: req.user.username });
 });
 
 // Ruta para el registro de usuarios
@@ -140,8 +143,9 @@ app.post('/', passport.authenticate('local', {
 }));
 
 // Ruta para cerrar sesión
-app.get('/logout', (req, res) => {
-  req.logout(() => {
+app.get('/logout', (req, res, next) => {
+  req.logout((err) => {
+    if (err) return next(err);
     res.redirect('/');
   });
 });
