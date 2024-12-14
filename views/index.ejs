@@ -51,6 +51,7 @@
   });
 
   googleButton.addEventListener('click', () => {
+    event.preventDefault();
     console.log('google');
     window.location.href = '/auth/google';
   });
