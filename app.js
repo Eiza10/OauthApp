@@ -100,6 +100,19 @@ app.get('/user', isAuthenticated, (req, res) => {
   res.render('user', { username });
 });
 
+// Ruta para el registro de usuarios
+app.get('/register', (req, res) => {
+  res.render('register');
+});
+
+// Procesar el formulario de registro
+app.post('/register', (req, res) => {
+  const { username, password } = req.body;
+  const passwordHash = bcrypt.hashSync(password, 10);
+  users.push({ id: users.length + 1, username, passwordHash });
+  res.redirect('/');
+});
+
 // Ruta para el inicio de sesión con Google
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
@@ -123,7 +136,7 @@ app.get('/auth/github/callback', passport.authenticate('github', {
 // Procesar el formulario de inicio de sesión
 app.post('/', passport.authenticate('local', {
   successRedirect: '/user',
-  failureRedirect: '/login',
+  failureRedirect: '/',
   failureFlash: true,
 }));
 
