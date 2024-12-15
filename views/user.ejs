@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Usuario</title>
+  <title>Profile</title>
 </head>
 <body>
-  <h1>Bienvenido</h1>
-  <p>Nombre: <%= name %></p>
-  <p>Email: <%= email %></p>
-  <p>Plataforma: <%= provider %></p>
-  <a href="/logout">Cerrar sesión</a>
+  <h1>Welcome, <%= user.username %></h1>
+  <p>Email: <%= user.email %></p>
+  <p>Logged in via: <%= user.platform %></p>
+  <a href="/logout">Logout</a>
 </body>
 </html>

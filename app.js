@@ -1,197 +1,159 @@
-// Importar las dependencias necesarias
 const express = require('express');
-const session = require('express-session');
 const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const GitHubStrategy = require('passport-github2').Strategy;
-const LocalStrategy = require('passport-local').Strategy;
-const bcrypt = require('bcryptjs');
-const dotenv = require('dotenv');
+const session = require('express-session');
+const bodyParser = require('body-parser');
+const { Strategy: LocalStrategy } = require('passport-local');
+const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
+const { Strategy: GitHubStrategy } = require('passport-github2');
 const path = require('path');
-const flash = require('connect-flash');
+require('dotenv').config();
 const port = process.env.PORT || 3005;
 
+const GoogleClientID = process.env.GOOGLE_CLIENT_ID;
+const GooogleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const GitHubClientID = process.env.GITHUB_CLIENT_ID;
+const GitHubClientSecret = process.env.GITHUB_CLIENT_SECRET;
 
-// Configurar variables de entorno
-dotenv.config();
 
 const app = express();
-app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Simulating a database with an array
+const users = [];
 
-// Simulamos una base de datos de usuarios en memoria
-const users = [
-  { id: 1, username: 'usuario1', passwordHash: '$2a$10$KIXe9Qqf1F/6Fmvs6u5ycuOdCkHbs7df5q3owNT5q0J5pOp09Up3C' } // password: "123456"
-];
-
-// Configurar la sesión
-app.use(session({
-  secret: 'my_secret_key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: true }
-}));
-
-// Configurar motor de vistas EJS
+// Middleware
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(session({ secret: 'secret', resave: false, saveUninitialized: true }));
+app.use(passport.initialize());
+app.use(passport.session());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Inicializar Passport
-app.use(passport.initialize());
-app.use(passport.session());
+// Passport Local Strategy
+passport.use(
+  new LocalStrategy((username, password, done) => {
+    const user = users.find(u => u.username === username && u.password === password);
+    if (user) return done(null, user);
+    return done(null, false, { message: 'Invalid username or password' });
+  })
+);
 
-app.use(flash());
-
-// Middleware para pasar mensajes flash a las vistas
-app.use((req, res, next) => {
-  res.locals.success_msg = req.flash('success_msg');
-  res.locals.error_msg = req.flash('error_msg');
-  res.locals.error = req.flash('error'); // Usado por Passport
-  next();
-});
-
-// Configuración de Passport para Google
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: 'https://oauth.haritzeizagirre.eus/auth/google/callback',
-}, (accessToken, refreshToken, profile, done) => {
-  console.log('Google Profile:', profile);
-  let user = users.find(u => u.id === profile.id);
-
-  if (!user) {
-    // Si el usuario no existe, crear uno nuevo
-    user = {
-      id: profile.id, // ID único proporcionado por Google
-      displayName: profile.displayName, // Nombre de usuario
-      email: profile.emails[0].value, // Correo del usuario
-    };
-    users.push(user); // Añadir al array
-    console.log('Usuario registrado:', user);
-  } else {
-    console.log('Usuario existente:', user);
-  }
-  // Llama a `done` con el usuario
-  done(null, user);
-}));
-
-// Configuración de Passport para GitHub
-passport.use(new GitHubStrategy({
-  clientID: process.env.GITHUB_CLIENT_ID,
-  clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  callbackURL: 'https://oauth.haritzeizagirre.eus/auth/github/callback',
-}, (accessToken, refreshToken, profile, done) => {
-  return done(null, { profile, provider: 'github' });
-}));
-
-// Configuración de Passport para la estrategia local
-passport.use(new LocalStrategy((username, password, done) => {
-  const user = users.find(u => u.username === username);
-  if (!user) {
-    return done(null, false, { message: 'Usuario no encontrado' });
-  }
-
-  bcrypt.compare(password, user.passwordHash, (err, isMatch) => {
-    if (err) return done(err);
-    if (isMatch) {
+// Passport Google Strategy
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: GoogleClientID,
+      clientSecret: GooogleClientSecret,
+      callbackURL: 'oauth.haritzeizagirre.eus/auth/google/callback',
+    },
+    (accessToken, refreshToken, profile, done) => {
+      let user = users.find(u => u.id === profile.id);
+      if (!user) {
+        user = {
+          id: profile.id,
+          username: profile.displayName,
+          email: profile.emails[0].value,
+          platform: 'google',
+        };
+        users.push(user);
+      }
       return done(null, user);
-    } else {
-      return done(null, false, { message: 'Contraseña incorrecta' });
     }
-  });
-}));
+  )
+);
 
-// Serializar y deserializar el usuario
-passport.serializeUser((user, done) => {
-  console.log('SerializeUser:', user);
-  done(null, user.id);
-});
+// Passport GitHub Strategy
+passport.use(
+  new GitHubStrategy(
+    {
+      clientID: GitHubClientID,
+      clientSecret: GitHubClientSecret,
+      callbackURL: 'oauth.haritzeizagirre.eus/auth/github/callback',
+    },
+    (accessToken, refreshToken, profile, done) => {
+      let user = users.find(u => u.id === profile.id);
+      if (!user) {
+        user = {
+          id: profile.id,
+          username: profile.username,
+          email: profile.emails ? profile.emails[0].value : 'No public email',
+          platform: 'github',
+        };
+        users.push(user);
+      }
+      return done(null, user);
+    }
+  )
+);
 
+// Serialize and deserialize users
+passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser((id, done) => {
   const user = users.find(u => u.id === id);
-  if (user) {
-    done(null, user); // Usuario encontrado
-  } else {
-    done(new Error('Usuario no encontrado'), null); // Error si no se encuentra
-  }
+  done(null, user);
 });
 
-// Middleware para comprobar si el usuario está autenticado
-function isAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.redirect('/');
-}
-
-// Ruta principal
+// Routes
 app.get('/', (req, res) => {
-  res.render('index');
+  res.render('login', { user: req.user });
 });
 
-// Ruta protegida después del inicio de sesión
-app.get('/user', isAuthenticated, (req, res) => {
-  res.render('user', { username: req.user.username });
-});
+app.post(
+  '/login',
+  passport.authenticate('local', {
+    successRedirect: '/profile',
+    failureRedirect: '/',
+  })
+);
 
-// Ruta para el registro de usuarios
 app.get('/register', (req, res) => {
   res.render('register');
 });
 
-// Procesar el formulario de registro
 app.post('/register', (req, res) => {
-  const { username, password } = req.body;
-  const passwordHash = bcrypt.hashSync(password, 10);
-  users.push({ id: users.length + 1, username, passwordHash });
+  const { username, password, email } = req.body;
+  if (users.find(u => u.username === username)) {
+    return res.send('User already exists');
+  }
+  users.push({
+    id: `${Date.now()}`,
+    username,
+    password,
+    email,
+    platform: 'default',
+  });
   res.redirect('/');
 });
 
-// Ruta para el inicio de sesión con Google
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }), (req, res) => { console.log('Google login') });
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-// Callback de Google
-app.get('/auth/google/callback', passport.authenticate('google', {
-  failureRedirect: '/',
-  failureFlash: true,
-}), (req, res) => {
-  console.log('Usuario autenticado:', req.user);
-  res.redirect('/user');
-});
+app.get(
+  '/auth/google/callback',
+  passport.authenticate('google', {
+    failureRedirect: '/',
+    successRedirect: '/profile',
+  })
+);
 
-// Ruta para el inicio de sesión con GitHub
 app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] }));
 
-// Callback de GitHub
-app.get('/auth/github/callback', passport.authenticate('github', {
-  failureRedirect: '/',
-  failureFlash: true,
-}), (req, res) => {
-  res.redirect('/user');
+app.get(
+  '/auth/github/callback',
+  passport.authenticate('github', {
+    failureRedirect: '/',
+    successRedirect: '/profile',
+  })
+);
+
+app.get('/profile', (req, res) => {
+  if (!req.isAuthenticated()) return res.redirect('/');
+  res.render('profile', { user: req.user });
 });
 
-// Procesar el formulario de inicio de sesión
-app.post('/', passport.authenticate('local', {
-  successRedirect: '/user',
-  failureRedirect: '/',
-  failureFlash: true,
-}));
-
-// Ruta para cerrar sesión
-app.get('/logout', (req, res, next) => {
-  req.logout((err) => {
+app.get('/logout', (req, res) => {
+  req.logout(err => {
     if (err) return next(err);
     res.redirect('/');
   });
 });
 
-console.log('users:', users);
-
-// Iniciar el servidor
-app.listen(port, () => {
-  console.log(`Server working on port: ${port}`);
-});
-
-module.exports = app;
+app.listen(port, () => console.log('Server running on port 3005'));
