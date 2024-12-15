@@ -150,13 +150,14 @@ app.post('/register', (req, res) => {
 });
 
 // Ruta para el inicio de sesión con Google
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }), (req, res) => { console.log('Google login') });
 
 // Callback de Google
 app.get('/auth/google/callback', passport.authenticate('google', {
   failureRedirect: '/',
   failureFlash: true,
 }), (req, res) => {
+  console.log('Usuario autenticado:', req.user);
   res.redirect('/user');
 });
 
