@@ -30,7 +30,7 @@ const users = [
 app.use(session({
   secret: 'my_secret_key',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   cookie: { secure: true }
 }));
 
@@ -58,7 +58,23 @@ passport.use(new GoogleStrategy({
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
   callbackURL: 'https://oauth.haritzeizagirre.eus/auth/google/callback',
 }, (accessToken, refreshToken, profile, done) => {
-  return done(null, { profile, provider: 'google' });
+  console.log('Google Profile:', profile);
+  let user = users.find(u => u.id === profile.id);
+
+  if (!user) {
+    // Si el usuario no existe, crear uno nuevo
+    user = {
+      id: profile.id, // ID único proporcionado por Google
+      displayName: profile.displayName, // Nombre de usuario
+      email: profile.emails[0].value, // Correo del usuario
+    };
+    users.push(user); // Añadir al array
+    console.log('Usuario registrado:', user);
+  } else {
+    console.log('Usuario existente:', user);
+  }
+  // Llama a `done` con el usuario
+  done(null, user);
 }));
 
 // Configuración de Passport para GitHub
@@ -94,7 +110,11 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser((id, done) => {
   const user = users.find(u => u.id === id);
-  done(null, user);
+  if (user) {
+    done(null, user); // Usuario encontrado
+  } else {
+    done(new Error('Usuario no encontrado'), null); // Error si no se encuentra
+  }
 });
 
 // Middleware para comprobar si el usuario está autenticado
@@ -164,6 +184,8 @@ app.get('/logout', (req, res, next) => {
     res.redirect('/');
   });
 });
+
+console.log('users:', users);
 
 // Iniciar el servidor
 app.listen(port, () => {
