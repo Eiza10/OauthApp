@@ -4,7 +4,7 @@ body{
   align-items: center;
   background-color: lightblue;
 }
-.form {
+.container {
   --background: #d3d3d3;
   --input-focus: #2d8cf0;
   --font-color: #323232;
@@ -29,7 +29,7 @@ body{
 
 }
 
-.form > p {
+.container > p {
   font-family: var(--font-DelaGothicOne);
   color: var(--font-color);
   font-weight: 700;
@@ -40,7 +40,7 @@ body{
   align-items: center;
 }
 
-.form > p > span {
+.container > p > span {
   font-family: var(--font-SpaceMono);
   color: var(--font-color-sub);
   font-weight: 600;
